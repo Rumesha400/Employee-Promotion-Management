@@ -1,0 +1,61 @@
+//query for verification after function execution	
+SELECT e.e_id,e_name,sd.salary,r.rating,sd.designation,d.promoteto_designation
+    FROM employees e
+    JOIN ratings r ON e.e_id = r.e_id
+    JOIN salary_designation sd ON e.e_id = sd.e_id
+     JOIN designation d ON sd.designation = d.current_designation
+	where r.rating >=3
+	order by e_id;
+
+
+//Function
+CREATE OR REPLACE PROCEDURE update_designation()
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  id salary_designation.e_id%type;
+  desig salary_designation.designation%type;
+  c_salary salary_designation.salary%type; 
+  rate ratings.rating%type;
+  c1 CURSOR FOR
+    SELECT e.e_id, rating, sd.salary, d.promoteto_designation
+    FROM employees e
+    JOIN ratings r ON e.e_id = r.e_id
+    JOIN salary_designation sd ON e.e_id = sd.e_id
+    JOIN designation d ON sd.designation = d.current_designation
+    WHERE r.rating >= 3;
+BEGIN
+  OPEN c1;  
+  LOOP
+    FETCH c1 INTO id, rate, c_salary, desig;
+    EXIT WHEN NOT FOUND;
+    
+    UPDATE salary_designation  
+    SET designation = desig
+	where rate> 3 and e_id = id;
+    
+    IF rate = 3 THEN
+      UPDATE salary_designation
+      SET salary = 1.25 * c_salary
+	  where rate = 3 and e_id = id;
+	  
+    ELSIF rate = 4 THEN
+      UPDATE salary_designation
+      SET salary = 1.5 * c_salary
+	  where rate = 4 and e_id = id;
+	  
+    ELSIF rate = 5 THEN
+      UPDATE salary_designation
+      SET salary = 1.75 * c_salary
+	  where rate = 5 and e_id = id;
+	  
+    END IF;
+  END LOOP;
+  CLOSE c1;
+END;
+$$;
+
+-- Execute the procedure using CALL
+CALL update_designation();
+
+
